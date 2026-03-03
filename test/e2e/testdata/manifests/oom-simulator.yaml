@@ -1,0 +1,109 @@
+# OOM Simulator - Test Deployment
+#
+# Grows memory in 30MB chunks every 5s until a TARGET_MB ceiling, then stabilizes.
+# - Initial container limit: 100Mi. TARGET_MB defaults to 120, so we exceed 100Mi → OOMKilled.
+# - Operator runs adjustMemory (+25%) → limit becomes 125Mi.
+# - Pod restarts; simulator grows to 120MB and stops → stable.
+#
+# Env TARGET_MB: memory (MB) to grow to before stopping (default 120).
+# Usage:
+#   make e2e-deploy   # or kubectl apply -f ...
+#   kubectl -n ariadna logs -f deploy/oom-simulator
+#   kubectl -n ariadna get pods -w
+# Cleanup:
+#   make e2e-undeploy
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ariadna
+  labels:
+    app.kubernetes.io/part-of: ariadna-self-healing
+    purpose: testing
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oom-simulator-script
+  namespace: ariadna
+data:
+  oom_simulator.py: |
+    """
+    OOM Simulator - Grows memory in chunks until TARGET_MB, then stabilizes.
+
+    - Initially container limit (e.g. 100Mi) is below TARGET_MB (e.g. 120) -> OOMKilled.
+    - Operator increases limit (e.g. +25% -> 125Mi); after restart we reach TARGET_MB and stop.
+    """
+    import os
+    import time
+
+    CHUNK_SIZE_MB = 30
+    CHUNK_SIZE_BYTES = CHUNK_SIZE_MB * 1024 * 1024
+    INTERVAL_SECONDS = 5
+    DEFAULT_TARGET_MB = 120
+
+    target_mb = int(os.environ.get("TARGET_MB", str(DEFAULT_TARGET_MB)))
+
+    print(f"OOM Simulator starting (PID: {os.getpid()})")
+    print(f"Chunk: {CHUNK_SIZE_MB}MB every {INTERVAL_SECONDS}s until {target_mb}MB, then stabilize")
+    print("-" * 50)
+
+    data = []
+    chunk_num = 0
+    total_mb = 0
+
+    while total_mb < target_mb:
+        chunk_num += 1
+        data.append(bytearray(CHUNK_SIZE_BYTES))
+        total_mb = chunk_num * CHUNK_SIZE_MB
+        print(f"Chunk {chunk_num}: +{CHUNK_SIZE_MB}MB allocated (total: {total_mb}MB)", flush=True)
+        time.sleep(INTERVAL_SECONDS)
+
+    print(f"Reached target {target_mb}MB; stabilizing (no more allocations).", flush=True)
+    while True:
+        time.sleep(3600)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oom-simulator
+  namespace: ariadna
+  labels:
+    app: oom-simulator
+    purpose: testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oom-simulator
+  template:
+    metadata:
+      labels:
+        app: oom-simulator
+    spec:
+      containers:
+        - name: oom-simulator
+          image: python:3.12-slim
+          command: ["python3", "/scripts/oom_simulator.py"]
+          env:
+            # Memory (MB) to grow to before stabilizing. Above initial limit (100Mi) -> OOM once; after operator +25% (125Mi) we stay under and stabilize.
+            - name: TARGET_MB
+              value: "120"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "100Mi"
+              cpu: "100m"
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: oom-simulator-script

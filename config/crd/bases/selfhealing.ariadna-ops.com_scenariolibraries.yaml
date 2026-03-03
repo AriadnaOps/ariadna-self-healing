@@ -1,0 +1,392 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: scenariolibraries.selfhealing.ariadna-ops.com
+spec:
+  group: selfhealing.ariadna-ops.com
+  names:
+    kind: ScenarioLibrary
+    listKind: ScenarioLibraryList
+    plural: scenariolibraries
+    shortNames:
+    - sl
+    - scenlib
+    singular: scenariolibrary
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.scenarioCount
+      name: Scenarios
+      type: integer
+    - jsonPath: .status.enabledCount
+      name: Enabled
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ScenarioLibrary is the Schema for the scenariolibraries API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ScenarioLibrarySpec defines the desired state of ScenarioLibrary
+            properties:
+              scenarios:
+                additionalProperties:
+                  description: |-
+                    Scenario defines a failure detection scenario.
+                    Each scenario pairs a detection rule (CEL expression) with remediation actions.
+                  properties:
+                    category:
+                      description: Category organizes scenarios by type
+                      enum:
+                      - infrastructure
+                      - resources
+                      - networking
+                      - storage
+                      - security
+                      - application
+                      type: string
+                    description:
+                      description: Description provides detailed information about
+                        this scenario
+                      type: string
+                    detection:
+                      description: Detection defines how to detect this failure
+                      properties:
+                        duration:
+                          description: Duration defines how long the condition must
+                            persist before triggering.
+                          type: string
+                        expression:
+                          description: |-
+                            Expression is a CEL expression evaluated against the detection input data.
+                            The expression has access to a "data" variable containing the full resource data,
+                            a "resource" variable with the ResourceReference, and a "labels" variable with metadata.
+                            Must evaluate to a boolean.
+
+                            Example (OOMKilled detection):
+                              has(data.status) &&
+                              data.status.containerStatuses.exists(cs,
+                                has(cs.lastState) &&
+                                has(cs.lastState.terminated) &&
+                                cs.lastState.terminated.reason == "OOMKilled"
+                              )
+                          type: string
+                        resource:
+                          description: Resource filters which Kubernetes resource
+                            kind this scenario applies to (pre-filter).
+                          properties:
+                            apiVersion:
+                              description: |-
+                                APIVersion is the API version (e.g., "v1", "apps/v1").
+                                If empty, matches any API version.
+                              type: string
+                            kind:
+                              description: Kind is the Kubernetes resource kind (e.g.,
+                                "Pod", "Deployment", "Node").
+                              type: string
+                          required:
+                          - kind
+                          type: object
+                        source:
+                          description: Source is where to detect this failure (pre-filter).
+                          enum:
+                          - kubernetes
+                          - otel
+                          type: string
+                        threshold:
+                          description: |-
+                            Threshold defines frequency-based detection (e.g., "2 occurrences in 30 minutes").
+                            If not set, detection triggers on the first match.
+                          properties:
+                            count:
+                              description: Count is the number of occurrences required
+                              minimum: 1
+                              type: integer
+                            window:
+                              description: Window is the time window for counting
+                                occurrences
+                              type: string
+                          required:
+                          - count
+                          - window
+                          type: object
+                      required:
+                      - expression
+                      - source
+                      type: object
+                    documentation:
+                      description: Documentation provides help text and links
+                      properties:
+                        manualSteps:
+                          description: ManualSteps describes how to investigate manually
+                          items:
+                            type: string
+                          type: array
+                        rootCauses:
+                          description: RootCauses lists common root causes
+                          items:
+                            type: string
+                          type: array
+                        runbookUrl:
+                          description: RunbookURL links to a detailed runbook
+                          type: string
+                        summary:
+                          description: Summary is a one-line description
+                          type: string
+                      type: object
+                    enabled:
+                      default: true
+                      description: Enabled indicates if this scenario is active by
+                        default
+                      type: boolean
+                    id:
+                      description: ID is the unique numeric identifier for this scenario
+                      minimum: 1000
+                      type: integer
+                    name:
+                      description: Name is the human-readable name
+                      type: string
+                    parameters:
+                      description: Parameters defines configurable parameters for
+                        this scenario
+                      items:
+                        description: ParameterSpec defines a configurable parameter
+                        properties:
+                          default:
+                            description: Default is the default value
+                            type: string
+                          description:
+                            description: Description explains the parameter
+                            type: string
+                          name:
+                            description: Name is the parameter name
+                            type: string
+                          required:
+                            default: false
+                            description: Required indicates if this parameter must
+                              be set
+                            type: boolean
+                          type:
+                            description: Type is the parameter type
+                            enum:
+                            - string
+                            - integer
+                            - duration
+                            - percentage
+                            - boolean
+                            type: string
+                        required:
+                        - name
+                        - type
+                        type: object
+                      type: array
+                    remediation:
+                      description: Remediation defines how to remediate this failure
+                      properties:
+                        actions:
+                          description: Actions are the remediation actions to execute
+                          items:
+                            description: ActionSpec defines a single remediation action
+                            properties:
+                              if:
+                                description: If is a CEL expression that must evaluate
+                                  to true for this action to execute
+                                type: string
+                              order:
+                                default: 0
+                                description: Order determines execution order (lower
+                                  = first)
+                                minimum: 0
+                                type: integer
+                              params:
+                                additionalProperties:
+                                  type: string
+                                description: Params contains action-specific parameters
+                                type: object
+                              type:
+                                description: Type is the action type
+                                enum:
+                                - scaleUp
+                                - scaleDown
+                                - restartPod
+                                - rollbackToPrevious
+                                - adjustCPU
+                                - adjustMemory
+                                - updateConfig
+                                - runJob
+                                - notify
+                                type: string
+                              unless:
+                                description: Unless is a CEL expression that must
+                                  evaluate to false for this action to execute
+                                type: string
+                            required:
+                            - type
+                            type: object
+                          minItems: 1
+                          type: array
+                        cooldown:
+                          description: Cooldown is the minimum time between remediations
+                          type: string
+                        escalation:
+                          description: Escalation defines what to do when max retries
+                            is reached
+                          properties:
+                            createEvent:
+                              default: true
+                              description: CreateEvent creates a Kubernetes Event
+                              type: boolean
+                            markResource:
+                              default: true
+                              description: MarkResource adds an annotation to the
+                                resource
+                              type: boolean
+                            notify:
+                              description: Notify sends notifications on escalation
+                              properties:
+                                channels:
+                                  description: Channels are the notification channels
+                                  items:
+                                    type: string
+                                  type: array
+                                message:
+                                  description: Message is a custom message template
+                                  type: string
+                                severity:
+                                  default: high
+                                  description: Severity is the notification severity
+                                  enum:
+                                  - low
+                                  - medium
+                                  - high
+                                  - critical
+                                  type: string
+                              type: object
+                          type: object
+                        maxRetries:
+                          default: 3
+                          description: MaxRetries is the maximum number of retry attempts
+                          minimum: 0
+                          type: integer
+                      required:
+                      - actions
+                      type: object
+                    severity:
+                      default: medium
+                      description: Severity is the severity level of this scenario
+                      enum:
+                      - low
+                      - medium
+                      - high
+                      - critical
+                      type: string
+                  required:
+                  - detection
+                  - id
+                  - name
+                  - remediation
+                  type: object
+                description: Scenarios is a map of scenario names to their definitions
+                type: object
+            required:
+            - scenarios
+            type: object
+          status:
+            description: ScenarioLibraryStatus defines the observed state of ScenarioLibrary
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              enabledCount:
+                description: EnabledCount is the number of enabled scenarios
+                type: integer
+              lastUpdated:
+                description: LastUpdated is when the status was last updated
+                format: date-time
+                type: string
+              scenarioCount:
+                description: ScenarioCount is the number of scenarios defined
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

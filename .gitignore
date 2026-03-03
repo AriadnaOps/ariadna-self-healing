@@ -1,0 +1,53 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+coverage.out
+coverage.html
+
+# Go workspace file
+go.work
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Local configuration
+*.local
+.env
+.env.*
+
+# Kubernetes manifests generated
+#config/crd/bases/*.yaml
+
+# Build artifacts
+dist/
+
+# Temporary files
+tmp/
+temp/
+
+# Local documentation (not for deployment)
+docs-initial-spec-localonly/
+docs-ai-localonly/
+docs-images-localonly/
+
+# Cursor and agent rules (local only)
+.cursor/
+AGENTS.md
+

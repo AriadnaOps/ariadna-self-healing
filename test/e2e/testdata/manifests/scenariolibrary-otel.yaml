@@ -1,0 +1,44 @@
+# ScenarioLibrary — OTel Log Detection
+#
+# Defines detection scenarios for OpenTelemetry logs.
+# Apply after CRDs and operator are installed.
+# Requires OTel receiver enabled (default: otel.receiver.enabled=true).
+#
+# Prerequisites:
+#   - Operator deployed with OTel receiver enabled
+#   - Applications sending OTLP logs to operator (gRPC :4317 or HTTP :4318)
+
+apiVersion: selfhealing.ariadna-ops.com/v1alpha1
+kind: ScenarioLibrary
+metadata:
+  name: otel-logs
+spec:
+  scenarios:
+    high-severity-log:
+      id: 2001
+      name: "High Severity OTel Log"
+      description: >
+        Detects OTel logs with ERROR or FATAL severity.
+        Triggers when a log record has severity ERROR/FATAL or severityNumber >= 17.
+      enabled: true
+      severity: medium
+      category: application
+
+      detection:
+        source: otel
+        expression: |
+          has(data.message) &&
+          (data.severity == "ERROR" || data.severity == "FATAL" ||
+           (has(data.severityNumber) && data.severityNumber >= 17))
+        threshold:
+          count: 1
+          window: "5m"
+
+      remediation:
+        actions:
+          - type: notify
+            order: 1
+            params:
+              severity: medium
+        cooldown: "5m"
+        maxRetries: 3

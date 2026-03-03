@@ -1,0 +1,227 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: remediationtasks.selfhealing.ariadna-ops.com
+spec:
+  group: selfhealing.ariadna-ops.com
+  names:
+    kind: RemediationTask
+    listKind: RemediationTaskList
+    plural: remediationtasks
+    shortNames:
+    - rtask
+    singular: remediationtask
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.scenarioID
+      name: Scenario
+      type: string
+    - jsonPath: .status.actionsCompleted
+      name: Actions
+      type: integer
+    - jsonPath: .status.claimedBy
+      name: ClaimedBy
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          RemediationTask represents a remediation job published by the Leader for
+          Workers to claim and execute. Each task carries an ordered list of actions
+          targeting a single resource. The Worker runs all actions sequentially and
+          stops on the first failure — preserving the same semantics as the
+          Remediation Controller in standalone mode.
+
+          PATTERN: K8s-native work queue — the API server + etcd provide persistence,
+          watch semantics, and optimistic concurrency (resourceVersion) that together
+          replace an external message broker. The Leader publishes fire-and-forget;
+          Workers compete via optimistic concurrency.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              RemediationTaskSpec defines a remediation job: an ordered list of actions to
+              execute against a target resource.
+
+              DESIGN: One RemediationTask = one DetectionResult. The Leader publishes it
+              as a fire-and-forget CRD and immediately returns to the detection loop. A
+              Worker claims the task and runs the full action sequence (stop on failure).
+
+              The spec is immutable after creation — only the Leader writes it.
+              Workers only update the status subresource.
+            properties:
+              actions:
+                description: |-
+                  Actions is the ordered list of remediation actions to execute.
+                  The Worker runs them sequentially and stops on the first failure.
+                items:
+                  description: |-
+                    TaskAction defines a single remediation action within a task.
+
+                    PATTERN: Mirrors types.ActionConfig but serialised as a CRD field.
+                    We use a dedicated struct (not types.ActionConfig) to keep the CRD API
+                    stable and decoupled from internal types.
+                  properties:
+                    order:
+                      description: |-
+                        Order determines execution priority (lower = first). Actions with the
+                        same order run sequentially in list order.
+                      format: int32
+                      type: integer
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: Params contains action-specific key-value parameters.
+                      type: object
+                    type:
+                      description: |-
+                        Type is the action type that maps to an action.Handler (e.g.,
+                        "restartPod", "scaleUp", "rollbackToPrevious").
+                      type: string
+                  required:
+                  - type
+                  type: object
+                minItems: 1
+                type: array
+              detectionResultID:
+                description: DetectionResultID links back to the specific detection
+                  result.
+                type: string
+              maxRetries:
+                default: 3
+                description: |-
+                  MaxRetries is the maximum number of retry attempts before the task
+                  transitions to Expired.
+                format: int32
+                minimum: 0
+                type: integer
+              scenarioID:
+                description: ScenarioID links back to the detection scenario that
+                  triggered this task.
+                type: string
+              scenarioName:
+                description: ScenarioName is the human-readable scenario name (for
+                  observability).
+                type: string
+              severity:
+                description: Severity of the detected issue (e.g., "low", "medium",
+                  "high", "critical").
+                type: string
+              target:
+                description: |-
+                  Target identifies the Kubernetes resource that the actions act on.
+                  Shared across all actions in the list (one job = one resource).
+                properties:
+                  apiVersion:
+                    description: APIVersion of the target resource (e.g., "v1", "apps/v1").
+                    type: string
+                  kind:
+                    description: Kind of the target resource (e.g., "Pod", "Deployment").
+                    type: string
+                  name:
+                    description: Name of the target resource.
+                    type: string
+                  namespace:
+                    description: Namespace of the target resource (empty for cluster-scoped).
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              timeout:
+                default: 60s
+                description: |-
+                  Timeout is the maximum time a Worker has to complete all actions after
+                  claiming the task. If the worker doesn't update status within this
+                  window the task is considered stuck and may be reclaimed.
+                type: string
+            required:
+            - actions
+            - scenarioID
+            - target
+            type: object
+          status:
+            description: |-
+              RemediationTaskStatus is the observed state of a RemediationTask.
+
+              SUBRESOURCE: Only the status subresource is updated by Workers. The spec
+              is treated as read-only after creation.
+            properties:
+              actionsCompleted:
+                description: |-
+                  ActionsCompleted is how many actions in the list were successfully
+                  executed before the task reached a terminal state.
+                format: int32
+                type: integer
+              claimedAt:
+                description: ClaimedAt is the timestamp when the Worker claimed the
+                  task.
+                format: date-time
+                type: string
+              claimedBy:
+                description: |-
+                  ClaimedBy is the POD_NAME of the Worker that claimed this task.
+                  Set when transitioning from Pending to Running.
+                type: string
+              completedAt:
+                description: |-
+                  CompletedAt is the timestamp when the task reached a terminal state
+                  (Completed, Failed, or Expired).
+                format: date-time
+                type: string
+              phase:
+                default: Pending
+                description: Phase is the current lifecycle phase.
+                type: string
+              result:
+                description: Result contains the outcome of the last execution attempt.
+                properties:
+                  error:
+                    description: Error contains the error string if Success is false.
+                    type: string
+                  message:
+                    description: Message is a human-readable description of the outcome.
+                    type: string
+                  success:
+                    description: Success indicates whether all actions completed without
+                      error.
+                    type: boolean
+                required:
+                - success
+                type: object
+              retryCount:
+                description: RetryCount tracks how many times this task has been retried.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

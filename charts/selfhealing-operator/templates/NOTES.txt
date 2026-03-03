@@ -1,0 +1,9 @@
+Self-healing operator has been installed.
+
+CRDs are not installed by this chart. Install them first if you have not already:
+
+  kubectl apply -k config/crd
+
+To get the operator logs:
+
+  kubectl logs -n {{ include "selfhealing-operator.namespace" . }} -l app.kubernetes.io/name={{ include "selfhealing-operator.name" . }} -f

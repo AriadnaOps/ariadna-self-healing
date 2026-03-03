@@ -1,0 +1,48 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "selfhealing-operator.fullname" . }}
+  labels:
+    {{- include "selfhealing-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/status]
+    verbs: [get, list, watch, patch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [get, list, watch, create, patch]
+  - apiGroups: [""]
+    resources: [nodes, nodes/status]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [services, endpoints, configmaps, persistentvolumeclaims]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets, statefulsets]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [delete]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [patch, update]
+  - apiGroups: [apps]
+    resources: [deployments/scale, statefulsets/scale]
+    verbs: [get, patch, update]
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [patch, update]
+  - apiGroups: [selfhealing.ariadna-ops.com]
+    resources: [scenariolibraries, scenariolibraries/status]
+    verbs: [get, list, watch, patch, update]
+  - apiGroups: [selfhealing.ariadna-ops.com]
+    resources: [clusterremediationpolicies, clusterremediationpolicies/status]
+    verbs: [get, list, watch, patch, update]
+  - apiGroups: [selfhealing.ariadna-ops.com]
+    resources: [remediationtasks, remediationtasks/status]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+{{- end }}

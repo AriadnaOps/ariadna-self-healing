@@ -1,0 +1,23 @@
+# Dedicated OTLP Service that routes only to the Leader pod.
+# The operator adds/removes the leader label when gaining/losing leadership.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "selfhealing-operator.fullname" . }}-otlp
+  namespace: {{ include "selfhealing-operator.namespace" . }}
+  labels:
+    {{- include "selfhealing-operator.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "selfhealing-operator.selectorLabels" . | nindent 4 }}
+    ariadna-ops.com/leader: "true"
+  ports:
+    - name: otlp-grpc
+      port: {{ .Values.service.otlpGrpcPort }}
+      targetPort: otlp-grpc
+      protocol: TCP
+    - name: otlp-http
+      port: {{ .Values.service.otlpHttpPort }}
+      targetPort: otlp-http
+      protocol: TCP
