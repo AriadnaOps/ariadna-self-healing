@@ -4,7 +4,7 @@ Thank you for your interest in contributing. This document explains how to build
 
 ## Prerequisites
 
-- Go 1.25+ (see [go.mod](go.mod))
+- Go 1.24+ (see [go.mod](go.mod))
 - Docker (optional, for image builds)
 - `kubectl` and a Kubernetes cluster (optional, for deployment and e2e)
 - [controller-gen](https://github.com/kubernetes-sigs/controller-tools) for CRD generation (`go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest`)

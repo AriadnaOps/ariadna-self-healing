@@ -1,5 +1,5 @@
 # Build stage (use full version to avoid cache pulling older Go)
-FROM golang:1.25.7-alpine AS builder
+FROM golang:1.24.4-alpine AS builder
 
 ARG VERSION=dev
 ARG GIT_COMMIT=unknown

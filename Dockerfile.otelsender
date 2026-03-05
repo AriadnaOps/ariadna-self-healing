@@ -1,5 +1,5 @@
 # otel-sender: sends a single ERROR log via OTLP/HTTP for e2e testing.
-FROM golang:1.25.7-alpine AS builder
+FROM golang:1.24.4-alpine AS builder
 WORKDIR /workspace
 COPY go.mod go.sum ./
 RUN go mod download

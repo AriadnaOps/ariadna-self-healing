@@ -4,7 +4,7 @@ Thank you for your interest in contributing to the Ariadna Self-Healing Operator
 
 ## Prerequisites
 
-- **Go 1.25+** (see [go.mod](https://github.com/ariadna-ops/ariadna-self-healing/blob/main/go.mod))
+- **Go 1.24+** (see [go.mod](https://github.com/ariadna-ops/ariadna-self-healing/blob/main/go.mod))
 - **Docker** (optional, for image builds)
 - **kubectl** and a Kubernetes cluster (optional, for deployment and e2e)
 - **[controller-gen](https://github.com/kubernetes-sigs/controller-tools)** for CRD generation

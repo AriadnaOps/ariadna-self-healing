@@ -33,7 +33,7 @@ Scenarios and policies are defined as **Custom Resource Definitions (CRDs)**, so
 
 - **Kubernetes** 1.21 or later
 - **kubectl** configured for your cluster
-- **Go 1.25+** (for building from source)
+- **Go 1.24+** (for building from source)
 
 ## Quick Start
 

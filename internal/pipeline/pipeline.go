@@ -66,6 +66,16 @@ func (p *Pipeline) SetTaskWorker(tw TaskWorkerInterface) {
 	p.taskWorker = tw
 }
 
+// goWithWg runs f in a goroutine and tracks it with the pipeline WaitGroup.
+// Compatible with Go 1.24 (sync.WaitGroup.Go was added in Go 1.25).
+func (p *Pipeline) goWithWg(f func()) {
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		f()
+	}()
+}
+
 // Option configures the Pipeline at construction time.
 type Option func(*pipelineOpts)
 
@@ -259,7 +269,7 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	// In leader/worker mode every pod (including the Leader) runs a
 	// TaskWorker that watches RemediationTask CRDs and executes actions.
 	if p.taskWorker != nil {
-		p.wg.Go(func() {
+		p.goWithWg(func() {
 			if err := p.taskWorker.Run(ctx); err != nil {
 				p.log.Error(err, "Task worker error")
 			}
@@ -268,8 +278,8 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	}
 
 	// ========== Start Remediation Layer ==========
-	// Using Go 1.25+ wg.Go() - automatically handles Add(1) and Done()
-	p.wg.Go(func() {
+	// TODO: Using Go 1.25+ wg.Go() - automatically handles Add(1) and Done()
+	p.goWithWg(func() {
 		if err := p.remediator.Run(ctx); err != nil {
 			p.log.Error(err, "Remediation controller error")
 		}
@@ -277,7 +287,7 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	p.log.V(1).Info("Remediation controller started")
 
 	// ========== Start Detection Layer ==========
-	p.wg.Go(func() {
+	p.goWithWg(func() {
 		if err := p.detector.Run(ctx); err != nil {
 			p.log.Error(err, "Detection engine error")
 		}
@@ -315,7 +325,7 @@ waitReady:
 		p.monitorsMu.Unlock()
 		for i := range p.monitors {
 			m := p.monitors[i]
-			p.wg.Go(func() {
+			p.goWithWg(func() {
 				if err := m.Run(ctx); err != nil {
 					p.log.Error(err, "Monitor error")
 				}
@@ -330,7 +340,7 @@ waitReady:
 	// 2. If we were in idle mode (monitorsStarted=false) and now have scenarios,
 	//    starts monitors. monitorsMu ensures we don't double-start or race with Shutdown.
 	if p.crdLoad != nil {
-		p.wg.Go(func() {
+		p.goWithWg(func() {
 			p.crdLoad.WatchScenarioLibraries(ctx, func() {
 				if err := p.detector.ReloadScenarios(ctx); err != nil {
 					p.log.Error(err, "Failed to reload scenarios on ScenarioLibrary change")
@@ -342,7 +352,7 @@ waitReady:
 					p.monitorsStarted = true
 					for i := range p.monitors {
 						m := p.monitors[i]
-						p.wg.Go(func() {
+						p.goWithWg(func() {
 							if err := m.Run(ctx); err != nil {
 								p.log.Error(err, "Monitor error")
 							}
@@ -442,10 +452,7 @@ func (p *Pipeline) Shutdown(ctx context.Context) error {
 
 		// Wait for all goroutines in a separate goroutine
 		go func() {
-			// p.wg.Wait() blocks until counter reaches 0
-			// With Go 1.25+ wg.Go(), the counter is automatically managed:
-			//   - Incremented when wg.Go() is called
-			//   - Decremented when the goroutine function returns
+			// p.wg.Wait() blocks until counter reaches 0 (goWithWg does Add(1)/Done())
 			p.wg.Wait()
 
 			// All goroutines exited! Close "done" channel to signal
