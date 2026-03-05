@@ -466,12 +466,8 @@ func (s *Server) runChecks(w http.ResponseWriter, r *http.Request, checks map[st
 	// Set Content-Type header
 	w.Header().Set("Content-Type", "application/json")
 
-	// Encode response as JSON and write to response writer
-	// json.NewEncoder(w): Create JSON encoder writing to w
-	// .Encode(response): Encode struct as JSON
-	// Automatically handles serialization (struct -> JSON)
-	// Error ignored (can't do much if response write fails)
-	json.NewEncoder(w).Encode(response)
+	// Encode response as JSON and write to response writer.
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // ============================================================================

@@ -34,11 +34,9 @@ type otelReceiverImpl struct {
 	readyMu  sync.RWMutex
 	stopOnce sync.Once
 
-	// OTLP receiver components (created in Run)
-	logsReceiver    receiver.Logs
-	metricsReceiver receiver.Metrics
-	tracesReceiver  receiver.Traces
-	host            component.Host
+	// OTLP receiver components (created in Run; only logs used for detection)
+	logsReceiver receiver.Logs
+	host         component.Host
 }
 
 // newOTelReceiverImpl creates a new otelReceiverImpl.

@@ -133,10 +133,7 @@ func main() {
 		os.Exit(1) // Exit with error code (non-zero indicates failure)
 	}
 
-	// defer schedules logger.Sync() to run when main() returns (at the very end)
-	// This ensures buffered log entries are flushed before the program exits
-	// defer statements execute in LIFO order (Last In, First Out)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Wrap Zap logger with zapr adapter to implement logr.Logger interface
 	// controller-runtime and K8s libraries expect logr.Logger, not *zap.Logger

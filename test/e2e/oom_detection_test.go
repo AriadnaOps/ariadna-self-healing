@@ -209,8 +209,8 @@ func TestNonOOMPod_NoDetectionResult(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	go func() { engine.Run(ctx) }()
-	go func() { monitor.Run(ctx) }()
+	go func() { _ = engine.Run(ctx) }()
+	go func() { _ = monitor.Run(ctx) }()
 
 	deadline := time.After(5 * time.Second)
 	for !engine.Ready() || !monitor.Ready() {

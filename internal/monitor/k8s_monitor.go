@@ -92,19 +92,23 @@ func (m *k8sMonitorImpl) Run(ctx context.Context) error {
 
 	// Register Pod informer + event handlers.
 	podInformer := m.informerFactory.Core().V1().Pods().Informer()
-	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	if _, err := podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    m.onPodAdd,
 		UpdateFunc: m.onPodUpdate,
-	})
+	}); err != nil {
+		return fmt.Errorf("pod informer AddEventHandler: %w", err)
+	}
 
 	// Register Event informer + event handlers.
 	// Kubernetes Events carry important signals (OOMKilled, Evicted, Unhealthy, etc.)
 	// that are not always visible in Pod status alone.
 	eventInformer := m.informerFactory.Core().V1().Events().Informer()
-	eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	if _, err := eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    m.onEventAdd,
 		UpdateFunc: m.onEventUpdate,
-	})
+	}); err != nil {
+		return fmt.Errorf("event informer AddEventHandler: %w", err)
+	}
 
 	// Start all registered informers.
 	m.informerFactory.Start(ctx.Done())
