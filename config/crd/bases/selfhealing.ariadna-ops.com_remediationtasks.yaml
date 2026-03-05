@@ -35,17 +35,9 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: |-
-          RemediationTask represents a remediation job published by the Leader for
-          Workers to claim and execute. Each task carries an ordered list of actions
-          targeting a single resource. The Worker runs all actions sequentially and
-          stops on the first failure — preserving the same semantics as the
-          Remediation Controller in standalone mode.
-
-          PATTERN: K8s-native work queue — the API server + etcd provide persistence,
-          watch semantics, and optimistic concurrency (resourceVersion) that together
-          replace an external message broker. The Leader publishes fire-and-forget;
-          Workers compete via optimistic concurrency.
+        description: RemediationTask is a remediation job (one DetectionResult). Leader
+          creates it; Workers claim, run actions in order (stop on first failure),
+          and update status.
         properties:
           apiVersion:
             description: |-
@@ -65,28 +57,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: |-
-              RemediationTaskSpec defines a remediation job: an ordered list of actions to
-              execute against a target resource.
-
-              DESIGN: One RemediationTask = one DetectionResult. The Leader publishes it
-              as a fire-and-forget CRD and immediately returns to the detection loop. A
-              Worker claims the task and runs the full action sequence (stop on failure).
-
-              The spec is immutable after creation — only the Leader writes it.
-              Workers only update the status subresource.
+            description: RemediationTaskSpec is the desired state of a remediation
+              job (ordered actions on one resource). Spec is immutable after creation;
+              only status is updated by Workers.
             properties:
               actions:
                 description: |-
                   Actions is the ordered list of remediation actions to execute.
                   The Worker runs them sequentially and stops on the first failure.
                 items:
-                  description: |-
-                    TaskAction defines a single remediation action within a task.
-
-                    PATTERN: Mirrors types.ActionConfig but serialised as a CRD field.
-                    We use a dedicated struct (not types.ActionConfig) to keep the CRD API
-                    stable and decoupled from internal types.
+                  description: TaskAction is one action in a RemediationTask (type,
+                    order, params). Mirrors types.ActionConfig for CRD stability.
                   properties:
                     order:
                       description: |-
