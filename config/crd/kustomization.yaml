@@ -1,0 +1,8 @@
+# Kustomization for CRDs. Apply with: kubectl apply -k config/crd
+# Install CRDs before deploying the operator (chart does not install CRDs).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - bases/selfhealing.ariadna-ops.com_clusterremediationpolicies.yaml
+  - bases/selfhealing.ariadna-ops.com_remediationtasks.yaml
+  - bases/selfhealing.ariadna-ops.com_scenariolibraries.yaml

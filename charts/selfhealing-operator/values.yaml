@@ -1,0 +1,74 @@
+# Default values for selfhealing-operator.
+# CRDs are not installed by this chart. Install them first, e.g.:
+#   kubectl apply -k config/crd
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Operator image
+image:
+  repository: ghcr.io/ariadna-ops/selfhealing-operator
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Replica count (use >= 2 for HA with leader election)
+replicaCount: 2
+
+# Command-line args for the operator
+operator:
+  args:
+    - --log-level=info
+  # - --leader-elect=false  # set to disable leader election (standalone)
+
+# Resource limits and requests
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Service account
+serviceAccount:
+  create: true
+  name: ""
+
+# RBAC
+rbac:
+  create: true
+
+# Namespace: create a dedicated namespace for the operator
+namespace:
+  create: true
+  name: selfhealing-system
+
+# Service (metrics, health, OTLP ports)
+service:
+  type: ClusterIP
+  metricsPort: 8080
+  healthPort: 8081
+  otlpGrpcPort: 4317
+  otlpHttpPort: 4318
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop: [ALL]
+
+# Liveness and readiness probes
+livenessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  failureThreshold: 3
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3

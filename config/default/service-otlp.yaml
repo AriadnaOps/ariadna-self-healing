@@ -1,0 +1,24 @@
+# Dedicated OTLP Service that routes only to the Leader pod.
+# The operator adds/removes the leader label when gaining/losing leadership.
+# Use this Service for OTLP traffic so clients always hit the pod running the OTLP receiver.
+apiVersion: v1
+kind: Service
+metadata:
+  name: selfhealing-operator-otlp
+  labels:
+    app.kubernetes.io/name: selfhealing-operator
+    app.kubernetes.io/part-of: ariadna-self-healing
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: selfhealing-operator
+    ariadna-ops.com/leader: "true"
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
+      protocol: TCP

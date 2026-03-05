@@ -1,0 +1,121 @@
+apiVersion: selfhealing.ariadna-ops.com/v1alpha1
+kind: ScenarioLibrary
+metadata:
+  name: infrastructure-scenarios
+spec:
+  scenarios:
+    crashloop:
+      id: 1001
+      name: CrashLoopBackOff
+      enabled: true
+      severity: high
+      category: infrastructure
+      detection:
+        source: kubernetes
+        resource:
+          kind: Pod
+        expression: |
+          has(data.status) &&
+          has(data.status.containerStatuses) &&
+          data.status.containerStatuses.exists(cs,
+            has(cs.state) &&
+            has(cs.state.waiting) &&
+            cs.state.waiting.reason == "CrashLoopBackOff"
+          )
+        threshold:
+          count: 3
+          window: 15m
+      remediation:
+        actions:
+          - type: rollbackToPrevious
+            order: 1
+          - type: notify
+            order: 2
+            params:
+              severity: high
+        cooldown: 30m
+        maxRetries: 2
+      documentation:
+        summary: Container repeatedly crashes and Kubernetes backs off restart attempts.
+        rootCauses:
+          - Application code error (panic, exception)
+          - Insufficient memory
+          - Missing configuration (env vars, secrets)
+          - Dependency unavailable at startup
+
+    imagepull:
+      id: 1002
+      name: ImagePullBackOff
+      enabled: true
+      severity: medium
+      category: infrastructure
+      detection:
+        source: kubernetes
+        resource:
+          kind: Pod
+        expression: |
+          has(data.status) &&
+          has(data.status.containerStatuses) &&
+          data.status.containerStatuses.exists(cs,
+            has(cs.state) &&
+            has(cs.state.waiting) &&
+            (cs.state.waiting.reason == "ImagePullBackOff" ||
+             cs.state.waiting.reason == "ErrImagePull")
+          )
+        threshold:
+          count: 1
+          window: 5m
+      remediation:
+        actions:
+          - type: notify
+            order: 1
+            params:
+              severity: medium
+      documentation:
+        summary: Container image cannot be pulled from registry.
+        rootCauses:
+          - Image does not exist
+          - Invalid image tag
+          - Registry authentication failure
+          - Network connectivity to registry
+
+    oomkilled:
+      id: 1003
+      name: OOMKilled Container
+      enabled: true
+      severity: high
+      category: infrastructure
+      detection:
+        source: kubernetes
+        resource:
+          kind: Pod
+        expression: |
+          has(data.status) &&
+          has(data.status.containerStatuses) &&
+          data.status.containerStatuses.exists(cs,
+            has(cs.lastState) &&
+            has(cs.lastState.terminated) &&
+            cs.lastState.terminated.reason == "OOMKilled"
+          )
+        threshold:
+          count: 1
+          window: 5m
+      remediation:
+        actions:
+          - type: adjustMemory
+            order: 1
+            params:
+              increase: "25%"
+              maxValue: 2Gi
+          - type: notify
+            order: 2
+            params:
+              severity: high
+        cooldown: 15m
+        maxRetries: 3
+      documentation:
+        summary: Container was killed due to Out Of Memory.
+        rootCauses:
+          - Memory limit too low
+          - Memory leak in application
+          - Spike in traffic causing high memory usage

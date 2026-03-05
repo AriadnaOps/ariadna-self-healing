@@ -1,0 +1,42 @@
+# MkDocs configuration for Ariadna Self-Healing Operator
+# https://www.mkdocs.org/user-guide/configuration/
+
+site_name: Ariadna Self-Healing Operator
+site_description: Kubernetes operator for scenario-based detection and remediation
+site_url: https://ariadna-self-healing.readthedocs.io/
+repo_url: https://github.com/ariadna-ops/ariadna-self-healing
+repo_name: ariadna-ops/ariadna-self-healing
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+    - scheme: slate
+      primary: indigo
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Overview:
+    - Why use this project?: why.md
+    - Comparison: comparison.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+  - User Guide:
+    - Deployment: deployment.md
+    - Configuration: configuration.md
+    - CRD Reference: crds.md
+  - Concepts:
+    - Architecture: architecture.md
+    - Glossary: glossary.md
+  - Contributing:
+    - Contributing: contributing.md

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: selfhealing-operator
+description: Self-healing operator for Ariadna - scenario-based detection and remediation
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.21.0"
+keywords:
+  - operator
+  - self-healing
+  - kubernetes
+  - remediation
+maintainers:
+  - name: Ariadna Ops
+    url: https://github.com/ariadna-ops

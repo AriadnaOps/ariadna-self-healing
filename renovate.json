@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Version updates and chore; security is handled by Dependabot",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": ["dependencies", "chore"],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "groupName": "go modules",
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "docker base images",
+      "matchUpdateTypes": ["minor", "patch"]
+    }
+  ],
+  "schedule": ["before 10am on monday"]
+}

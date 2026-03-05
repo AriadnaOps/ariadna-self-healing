@@ -1,0 +1,8 @@
+# Production overlay: HA defaults (replicas, resources). Customize as needed.
+# Apply with: kubectl apply -k config/overlays/production
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfhealing-system
+resources:
+  - ../../default
+# Optional: add patches for production image, resource limits, etc.

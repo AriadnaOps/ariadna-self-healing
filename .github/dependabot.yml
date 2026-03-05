@@ -1,0 +1,24 @@
+# Dependabot: Security Alerts and Security Updates only.
+# Version updates are handled by Renovate (see renovate.json).
+# Enable "Dependabot security updates" in repo Settings > Security.
+
+version: 2
+
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    open-pull-requests-limit: 0
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    open-pull-requests-limit: 0
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: ".github"
+    open-pull-requests-limit: 0
+    schedule:
+      interval: "weekly"

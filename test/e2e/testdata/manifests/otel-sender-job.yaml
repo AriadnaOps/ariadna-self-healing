@@ -1,0 +1,51 @@
+# Job that sends a single ERROR log via OTLP/HTTP to the self-healing operator.
+#
+# Prerequisites:
+#   - Operator deployed with OTel receiver enabled (default)
+#   - ScenarioLibrary OTel applied: kubectl apply -f scenariolibrary-otel.yaml
+#   - otel-sender image built and available (make build-sender docker-build-sender)
+#
+# Note: Use selfhealing-operator-otlp Service so traffic routes only to the Leader pod.
+#
+# Usage:
+#   make build-sender docker-build-sender  # build and tag image
+#   kubectl apply -f otel-sender-job.yaml
+#   kubectl logs -f job/otel-sender -n ariadna
+#
+# Override image: IMAGE_OTEL_SENDER=myreg/otel-sender:tag kubectl apply -f otel-sender-job.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ariadna
+  labels:
+    app.kubernetes.io/part-of: ariadna-self-healing
+    purpose: testing
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: otel-sender
+  namespace: ariadna
+  labels:
+    app.kubernetes.io/name: otel-sender
+    app.kubernetes.io/part-of: ariadna-self-healing
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: sender
+          image: ghcr.io/ariadna-ops/otel-sender:dev
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-endpoint=http://selfhealing-operator-otlp.selfhealing-system.svc:4318/v1/logs"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi

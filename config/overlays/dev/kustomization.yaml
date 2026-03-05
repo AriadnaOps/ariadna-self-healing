@@ -1,0 +1,12 @@
+# Dev overlay: single replica, suitable for local or dev clusters.
+# Apply with: kubectl apply -k config/overlays/dev
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfhealing-system
+resources:
+  - ../../default
+patches:
+  - path: replica-patch.yaml
+    target:
+      kind: Deployment
+      name: selfhealing-operator

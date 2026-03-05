@@ -1,0 +1,69 @@
+# ScenarioLibrary — OOM Detection Scenarios
+#
+# Defines detection scenarios for OOMKilled containers.
+# Apply after CRDs are installed:
+#   kubectl apply -k config/crd
+#   kubectl apply -f test/e2e/testdata/manifests/scenariolibrary-oom.yaml
+#
+# Or use: make e2e-deploy
+
+apiVersion: selfhealing.ariadna-ops.com/v1alpha1
+kind: ScenarioLibrary
+metadata:
+  name: oom-detection
+spec:
+  scenarios:
+    oom-killed:
+      id: 1001
+      name: "OOMKilled Container"
+      description: >
+        Detects containers that have been terminated with OOMKilled reason.
+        Triggers when a pod's containerStatuses report a last terminated state
+        with reason OOMKilled.
+      enabled: true
+      severity: high
+      category: resources
+
+      detection:
+        source: kubernetes
+        resource:
+          kind: Pod
+        expression: |
+          has(data.status) &&
+          has(data.status.containerStatuses) &&
+          data.status.containerStatuses.exists(cs,
+            has(cs.lastState) &&
+            has(cs.lastState.terminated) &&
+            cs.lastState.terminated.reason == "OOMKilled"
+          )
+        threshold:
+          count: 1
+          window: "5m"
+
+      remediation:
+        actions:
+          - type: adjustMemory
+            order: 1
+            params:
+              increase: "25%"
+              maxValue: "2Gi"
+          - type: notify
+            order: 2
+            params:
+              severity: high
+        cooldown: "15m"
+        maxRetries: 3
+        escalation:
+          createEvent: true
+          markResource: true
+
+      documentation:
+        summary: "Container was killed by the OOM killer due to exceeding memory limits."
+        rootCauses:
+          - "Memory limit is too low for the application workload"
+          - "Application has a memory leak"
+          - "Sudden spike in memory usage (e.g., large query, file processing)"
+        manualSteps:
+          - "Check container logs: kubectl logs <pod> -c <container> --previous"
+          - "Review memory usage: kubectl top pod <pod>"
+          - "Check resource limits: kubectl describe pod <pod>"
