@@ -1,5 +1,7 @@
 # Ariadna Self-Healing Operator
 
+![Status: In Development](https://img.shields.io/badge/status-in--development-yellow)
+
 [![CI](https://github.com/ariadna-ops/ariadna-self-healing/actions/workflows/ci.yml/badge.svg)](https://github.com/ariadna-ops/ariadna-self-healing/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/ariadna-ops/ariadna-self-healing.svg)](https://pkg.go.dev/github.com/ariadna-ops/ariadna-self-healing)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
